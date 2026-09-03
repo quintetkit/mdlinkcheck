@@ -20,6 +20,22 @@ index.md:3:38  ./nope.md
 | `1` | At least one broken link |
 | `2` | The path could not be read |
 
+## In CI
+
+```yaml
+- uses: quintetkit/mdlinkcheck@main
+  with:
+    path: ./docs      # default: .
+    format: text      # default: text
+```
+
+The step fails when a link is broken. It is a composite action, not a Docker
+one, so there is no image to build or pull.
+
+This repository runs that action against itself on every push
+([self-check.yml](.github/workflows/self-check.yml)), so "it works" is checked
+rather than asserted.
+
 `http:`, `https:`, `mailto:` and bare `#anchor` targets are reported as `external`
 and never checked for existence — "not checked" has to stay distinguishable from
 "broken". Links inside fenced or inline code are not extracted.

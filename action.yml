@@ -1,0 +1,39 @@
+name: 'mdlinkcheck'
+description: 'Find broken relative links in Markdown files. Fails the step when any link is broken.'
+author: 'quintetkit'
+branding:
+  icon: 'link-2'
+  color: 'orange'
+
+inputs:
+  path:
+    description: 'Directory or file to check.'
+    required: false
+    default: '.'
+  format:
+    description: 'Output format: text or json.'
+    required: false
+    default: 'text'
+
+runs:
+  # Docker ではなく composite にする。イメージのビルドと取得が要らないぶん起動が速い。
+  using: 'composite'
+  steps:
+    - name: Set up Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+
+    - name: Build mdlinkcheck
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        npm ci --no-audit --no-fund
+        npm run build
+
+    - name: Check links
+      shell: bash
+      # 終了コードをそのまま返す。壊れたリンクがあればステップが失敗する。
+      run: |
+        node "${{ github.action_path }}/bin/mdlinkcheck.js" \
+          "${{ inputs.path }}" --format "${{ inputs.format }}"
