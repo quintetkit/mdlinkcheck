@@ -7,31 +7,88 @@ mdlinkcheck ./docs
 mdlinkcheck ./docs --format json
 ```
 
-Exits `1` when broken links are found, `0` when there are none, and `2` on a bad path —
-so it drops into CI without extra glue.
+```
+docs/guide.md:3:36  ./vanished.md
+index.md:3:38  ./nope.md
+
+2 of 4 links broken in 2 files.
+```
+
+| Exit code | Meaning |
+|---|---|
+| `0` | No broken links |
+| `1` | At least one broken link |
+| `2` | The path could not be read |
+
+`http:`, `https:`, `mailto:` and bare `#anchor` targets are reported as `external`
+and never checked for existence — "not checked" has to stay distinguishable from
+"broken". Links inside fenced or inline code are not extracted.
 
 ## How this repository was built
 
-Every line here was written by Claude Code running the
+Every line was written by Claude Code running the
 [Quartet](https://github.com/quintetkit/quartet) workflow: four personas
 (Architect, Coder, Reviewer, Conflict Resolver) with responsibilities split
 and permissions reduced.
 
-**Do not take that on trust — read the history.**
+**Do not take that on trust. Read the history.**
 
-- **Issues** — each one carries a `Scope`, `Depends on`, and acceptance criteria
-  written before any code existed
-- **Pull requests** — each maps to exactly one Issue and stays inside its declared scope
-- **Timestamps** — Issues #2, #3 and #4 were implemented concurrently, in separate
-  `git worktree` checkouts, and merged one at a time
+| Issue | What | PR |
+|---|---|---|
+| [#1](../../issues/1) | Types and the report schema | [#6](../../pull/6) |
+| [#2](../../issues/2) | Link extraction and path resolution | [#9](../../pull/9) |
+| [#3](../../issues/3) | Text reporter | [#8](../../pull/8) |
+| [#4](../../issues/4) | JSON reporter | [#7](../../pull/7) |
+| [#5](../../issues/5) | CLI entry point | [#12](../../pull/12) |
+| [#10](../../issues/10) | Node type definitions | [#11](../../pull/11) |
 
-Nothing in the history is cleaned up after the fact. Rejections and conflicts,
-where they happened, are left in place: a history with no rejections would only
-show that review was not doing anything.
+Every Issue carries a `Scope`, a `Depends on` line, and acceptance criteria,
+all written before any code existed. Every PR maps to exactly one Issue and
+stays inside its declared scope.
 
-## Status
+**Issues #2, #3 and #4 were implemented concurrently**, in three separate
+`git worktree` checkouts, then merged one at a time. Implementation runs in
+parallel; merging does not. Three PRs merged at once can each pass on their own
+and still break together, and then you cannot tell which one did it.
 
-Under construction. Follow the Issues.
+## What went wrong, left in place
+
+A history with no rejections would only prove that review was not doing anything.
+Two things went wrong here, and both are still in the record.
+
+**1. Two Issues declared a scope that did not exist.**
+[#3](../../issues/3) and [#4](../../issues/4) named `test/reporters/` for their
+tests, but this project keeps tests next to the code (`src/**/*.test.ts`) and has
+no `test/` directory. Two Coders hit it independently and both reported it instead
+of quietly picking a different path. The Architect corrected the Issues and
+[left the reason as a comment](../../issues/4#issuecomment-1) rather than letting
+the Coders absorb a planning mistake.
+
+**2. `@types/node` was missing, so `tsc --noEmit` could not resolve `node:path`.**
+The Coder on [#2](../../issues/2) needed `package.json`, which was outside its
+scope. It stopped and reported instead of editing the file. The Architect split
+that out as [#10](../../issues/10) and it was fixed in its own PR.
+
+Both are the same mechanism: because a Coder cannot touch anything outside its
+declared scope, a bad split has to surface instead of being papered over.
+
+## Verification
+
+```
+tsc --noEmit    exit 0
+vitest run      87 tests, 6 files, all passing
+```
+
+The CLI is run against this repository's own Markdown as a check.
+
+## Development
+
+```bash
+npm install
+npm test
+npm run build
+node bin/mdlinkcheck.js .
+```
 
 ## License
 
