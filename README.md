@@ -40,6 +40,32 @@ rather than asserted.
 and never checked for existence — "not checked" has to stay distinguishable from
 "broken". Links inside fenced or inline code are not extracted.
 
+Reference-style links are checked too, including the collapsed and shortcut forms:
+
+```markdown
+[full][ref]      [collapsed][]      [shortcut]
+
+[ref]: ./target.md
+```
+
+A reference with no matching definition is not a link at all — Markdown renders it
+as plain text — so it is not reported as broken.
+
+## Excluding paths
+
+```bash
+mdlinkcheck . --ignore 'generated/**' --ignore '**/CHANGELOG.md'
+```
+
+| Pattern | Matches |
+|---|---|
+| `*` | anything except `/` — `docs/*.md` stays inside `docs/` |
+| `**` | anything, including `/` — `**/CHANGELOG.md` matches at any depth |
+| `?` | a single character except `/` |
+
+Excluded files are not counted in `checkedFiles`. `node_modules` and dot-directories
+are skipped without asking.
+
 ## How this repository was built
 
 Every line was written by Claude Code running the
