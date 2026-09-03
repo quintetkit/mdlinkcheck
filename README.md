@@ -35,12 +35,12 @@ and permissions reduced.
 
 | Issue | What | PR |
 |---|---|---|
-| [#1](../../issues/1) | Types and the report schema | [#6](../../pull/6) |
-| [#2](../../issues/2) | Link extraction and path resolution | [#9](../../pull/9) |
-| [#3](../../issues/3) | Text reporter | [#8](../../pull/8) |
-| [#4](../../issues/4) | JSON reporter | [#7](../../pull/7) |
-| [#5](../../issues/5) | CLI entry point | [#12](../../pull/12) |
-| [#10](../../issues/10) | Node type definitions | [#11](../../pull/11) |
+| [#1](https://github.com/quintetkit/mdlinkcheck/issues/1) | Types and the report schema | [#6](https://github.com/quintetkit/mdlinkcheck/pull/6) |
+| [#2](https://github.com/quintetkit/mdlinkcheck/issues/2) | Link extraction and path resolution | [#9](https://github.com/quintetkit/mdlinkcheck/pull/9) |
+| [#3](https://github.com/quintetkit/mdlinkcheck/issues/3) | Text reporter | [#8](https://github.com/quintetkit/mdlinkcheck/pull/8) |
+| [#4](https://github.com/quintetkit/mdlinkcheck/issues/4) | JSON reporter | [#7](https://github.com/quintetkit/mdlinkcheck/pull/7) |
+| [#5](https://github.com/quintetkit/mdlinkcheck/issues/5) | CLI entry point | [#12](https://github.com/quintetkit/mdlinkcheck/pull/12) |
+| [#10](https://github.com/quintetkit/mdlinkcheck/issues/10) | Node type definitions | [#11](https://github.com/quintetkit/mdlinkcheck/pull/11) |
 
 Every Issue carries a `Scope`, a `Depends on` line, and acceptance criteria,
 all written before any code existed. Every PR maps to exactly one Issue and
@@ -57,17 +57,17 @@ A history with no rejections would only prove that review was not doing anything
 Two things went wrong here, and both are still in the record.
 
 **1. Two Issues declared a scope that did not exist.**
-[#3](../../issues/3) and [#4](../../issues/4) named `test/reporters/` for their
+[#3](https://github.com/quintetkit/mdlinkcheck/issues/3) and [#4](https://github.com/quintetkit/mdlinkcheck/issues/4) named `test/reporters/` for their
 tests, but this project keeps tests next to the code (`src/**/*.test.ts`) and has
 no `test/` directory. Two Coders hit it independently and both reported it instead
 of quietly picking a different path. The Architect corrected the Issues and
-[left the reason as a comment](../../issues/4#issuecomment-1) rather than letting
+[left the reason as a comment](https://github.com/quintetkit/mdlinkcheck/issues/4#issuecomment-5530283597) rather than letting
 the Coders absorb a planning mistake.
 
 **2. `@types/node` was missing, so `tsc --noEmit` could not resolve `node:path`.**
-The Coder on [#2](../../issues/2) needed `package.json`, which was outside its
+The Coder on [#2](https://github.com/quintetkit/mdlinkcheck/issues/2) needed `package.json`, which was outside its
 scope. It stopped and reported instead of editing the file. The Architect split
-that out as [#10](../../issues/10) and it was fixed in its own PR.
+that out as [#10](https://github.com/quintetkit/mdlinkcheck/issues/10) and it was fixed in its own PR.
 
 Both are the same mechanism: because a Coder cannot touch anything outside its
 declared scope, a bad split has to surface instead of being papered over.
