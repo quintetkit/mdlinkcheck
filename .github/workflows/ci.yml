@@ -1,0 +1,27 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      # このツール自身で、このリポジトリの Markdown を検査する。
+      # 壊れたリンクがあれば終了コード 1 で CI が落ちる。
+      - name: Check own Markdown links
+        run: node bin/mdlinkcheck.js .
