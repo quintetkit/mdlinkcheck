@@ -19,3 +19,14 @@ jobs:
         uses: ./
         with:
           path: .
+
+  # 公開しているタグが外部から本当に使えるかを確かめる。
+  # ./ での実行が通っても、タグが指すコミットが壊れていれば利用者は動かない。
+  published-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run the published v1 tag against this repository
+        uses: quintetkit/mdlinkcheck@v1
+        with:
+          path: .

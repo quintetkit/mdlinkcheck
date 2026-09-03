@@ -23,11 +23,14 @@ index.md:3:38  ./nope.md
 ## In CI
 
 ```yaml
-- uses: quintetkit/mdlinkcheck@main
+- uses: quintetkit/mdlinkcheck@v1
   with:
     path: ./docs      # default: .
     format: text      # default: text
 ```
+
+`v1` moves with the latest 1.x release. Pin an exact version — `@v1.0.0` — if you
+would rather decide when to take a change.
 
 The step fails when a link is broken. It is a composite action, not a Docker
 one, so there is no image to build or pull.
