@@ -56,7 +56,7 @@ function isSkippedDirectory(name: string): boolean {
 }
 
 const USAGE = [
-  "Usage: mdlinkcheck <path> [--format text|json]",
+  "Usage: mdlinkcheck <path> [--format text|json] [--ignore <glob>]...",
   "",
   "Find broken relative links in Markdown files.",
   "",
@@ -65,6 +65,10 @@ const USAGE = [
   "",
   "Options:",
   "  --format text|json    Output format. Default: text.",
+  "  --ignore <glob>       Skip files matching the glob. Repeatable.",
+  "                        `*` matches within one path segment, `**` across",
+  "                        segments, `?` a single character. Paths are matched",
+  "                        relative to <path>, with `/` separators.",
   "  -h, --help            Show this help.",
   "",
   "Exit codes:",
@@ -74,7 +78,13 @@ const USAGE = [
 ].join("\n");
 
 type ParsedArgs =
-  | { readonly kind: "run"; readonly target: string; readonly format: Format }
+  | {
+      readonly kind: "run";
+      readonly target: string;
+      readonly format: Format;
+      /** `--ignore` に渡された glob。書かれた順。指定がなければ空配列。 */
+      readonly ignore: readonly string[];
+    }
   | { readonly kind: "help" }
   | { readonly kind: "error"; readonly message: string };
 
@@ -85,10 +95,14 @@ type ParsedArgs =
  * `--format json` と `--format=json` の 2 つ。知らないオプションや
  * 2 つ目のパスは黙って無視せず、エラーとして返す。CI で打ち間違えたまま
  * 「壊れたリンクなし」と報告されるのが一番まずいため。
+ *
+ * `--ignore` だけは繰り返せる。`--format` のように後勝ちで上書きすると
+ * 「複数のディレクトリを除外する」という一番よくある使い方が書けない。
  */
 export function parseArgs(argv: readonly string[]): ParsedArgs {
   let target: string | undefined;
   let format: Format = "text";
+  const ignore: string[] = [];
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i] ?? "";
@@ -121,6 +135,24 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
       continue;
     }
 
+    if (arg === "--ignore" || arg.startsWith("--ignore=")) {
+      let value: string | undefined;
+      if (arg === "--ignore") {
+        value = argv[i + 1];
+        i += 1;
+      } else {
+        value = arg.slice("--ignore=".length);
+      }
+      if (value === undefined || value === "") {
+        return {
+          kind: "error",
+          message: "--ignore needs a value (a glob pattern).",
+        };
+      }
+      ignore.push(value);
+      continue;
+    }
+
     if (arg.startsWith("-") && arg !== "-") {
       return { kind: "error", message: `Unknown option: ${arg}` };
     }
@@ -137,11 +169,91 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
   if (target === undefined || target === "") {
     return { kind: "error", message: "Missing path." };
   }
-  return { kind: "run", target, format };
+  return { kind: "run", target, format, ignore };
 }
 
 function isFormat(value: string): value is Format {
   return (FORMATS as readonly string[]).includes(value);
+}
+
+/** 正規表現のメタ文字を打ち消す。glob のうち特別扱いしない文字はここを通す。 */
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * glob を正規表現に直す。
+ *
+ * 必要なのは `*` `**` `?` の 3 つだけなので、ライブラリを足さずに
+ * 1 文字ずつ読んで組み立てる。特別扱いしない文字は必ずエスケープする。
+ * これを忘れると `--ignore CHANGELOG.md` の `.` が「任意の 1 文字」になり、
+ * 意図しないファイルまで静かに検査対象から消える。
+ *
+ * | glob  | 正規表現    | 意味                             |
+ * |-------|-------------|----------------------------------|
+ * | `*`   | `[^/]*`     | `/` を跨がない任意の並び          |
+ * | `**`  | `.*`        | `/` を跨ぐ任意の並び              |
+ * | `?`   | `[^/]`      | `/` 以外の 1 文字                 |
+ *
+ * ただし `**` の直後に区切りが続く形（二重アスタリスクとスラッシュ）は、
+ * 「0 段でもよい」という意味の省略可能なグループに直す。素直に `.*` と
+ * 区切りを並べると、ディレクトリが 1 段以上ないと当たらない。それだと
+ * 二重アスタリスク付きの `CHANGELOG.md` がルート直下の `CHANGELOG.md` に
+ * 当たらず、「どこにあっても除外したい」という書き手の意図から外れる。
+ *
+ * パス全体との一致を見る（部分一致にしない）。`docs` と書いたときに
+ * `docs-old/a.md` まで消えるのを避けるため。前方一致で消したいときは
+ * `docs/**` と書く。
+ */
+function globToRegExp(pattern: string): RegExp {
+  let source = "";
+
+  for (let i = 0; i < pattern.length; i += 1) {
+    const char = pattern[i] ?? "";
+
+    if (char === "*") {
+      if (pattern[i + 1] === "*") {
+        if (pattern[i + 2] === "/") {
+          source += "(?:.*/)?";
+          i += 2;
+        } else {
+          source += ".*";
+          i += 1;
+        }
+        continue;
+      }
+      source += "[^/]*";
+      continue;
+    }
+
+    if (char === "?") {
+      source += "[^/]";
+      continue;
+    }
+
+    source += escapeRegExp(char);
+  }
+
+  return new RegExp(`^${source}$`);
+}
+
+/**
+ * `--ignore` の glob 群から「このファイルを飛ばすか」を答える関数を作る。
+ *
+ * 正規表現の組み立てはパターンの数だけで済ませ、ファイルごとにやり直さない。
+ * 突き合わせる前に区切りを `/` に揃えるので、Windows で集めた
+ * `docs\guide\index.md` も `docs/**` で除外できる。
+ */
+export function createIgnoreMatcher(
+  patterns: readonly string[],
+): (relativePath: string) => boolean {
+  if (patterns.length === 0) return () => false;
+
+  const matchers = patterns.map(globToRegExp);
+  return (relativePath) => {
+    const normalized = relativePath.split(path.sep).join("/");
+    return matchers.some((matcher) => matcher.test(normalized));
+  };
 }
 
 /**
@@ -218,9 +330,16 @@ export async function run(
   // ファイル 1 個を渡されたときは、その親を起点にする。リンクは書かれた
   // ファイルの位置を基準に解決されるので、これで挙動が揃う。
   const rootDir = isDirectory ? absoluteTarget : path.dirname(absoluteTarget);
-  const files = isDirectory
+  const found = isDirectory
     ? await collectMarkdownFiles(rootDir)
     : [path.basename(absoluteTarget)];
+
+  // 除外は収集のあとに掛ける。`collectMarkdownFiles` は「そこにある
+  // Markdown を返す」だけの関数のままにしておきたいのと、既定の除外
+  // （node_modules・ドット始まり）とは掛かる層が違うことを分けて示すため。
+  // どちらも読み込みの前なので、除外したファイルは `checkedFiles` に入らない。
+  const isIgnored = createIgnoreMatcher(args.ignore);
+  const files = found.filter((file) => !isIgnored(file));
 
   const links: LinkRef[] = [];
   try {
