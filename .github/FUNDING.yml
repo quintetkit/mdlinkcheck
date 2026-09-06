@@ -1,0 +1,9 @@
+# GitHub のリポジトリに「Sponsor」ボタンを出す。
+#
+# 寄付の口座は作っていないので、custom で有料版の販売ページを指す。
+# **この製品がこの仕事の資金源**なので、指す先としては正確。
+#
+# 2つ並ぶのは売り場が言語で分かれているため（英語: Gumroad / 日本語: BOOTH）。
+custom:
+  - https://quintetkit.gumroad.com/l/quintet
+  - https://quartet-dev.booth.pm/items/8807156
