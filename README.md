@@ -76,7 +76,7 @@ Every line was written by Claude Code running the
 (Architect, Coder, Reviewer, Conflict Resolver) with responsibilities split
 and permissions reduced. Quartet is free, under MIT. The version that adds a
 UI Designer persona, the Reviewer's decision criteria, a per-Issue parallel
-execution script and a 10-chapter guide is [sold as Quintet](https://quartet-dev.booth.pm/items/8807156).
+execution script and a 10-chapter guide is [sold as Quintet](https://quintetkit.gumroad.com/l/quintet).
 
 **Do not take that on trust. Read the history.**
 
