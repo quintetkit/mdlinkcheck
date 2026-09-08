@@ -107,7 +107,7 @@ Coder は自分の scope 外を触れず、マージは Reviewer しかできず
 
 ```bash
 # 1. 対象プロジェクトの直下にコピー
-cp -R CLAUDE.md .claude .github /path/to/your-project/
+cp -R CLAUDE.md .claude .github setup.sh /path/to/your-project/
 
 # 2. ラベルを作成（gh CLI の認証が必要）
 cd /path/to/your-project && ./setup.sh
