@@ -1,7 +1,6 @@
 ---
 name: coder
 description: Use to implement exactly one GitHub issue created by the architect persona. Works only within the issue's declared scope, on its own branch, and opens a PR when done. Multiple coder instances are expected to run concurrently on non-overlapping issues.
-tools: *
 model: inherit
 ---
 
